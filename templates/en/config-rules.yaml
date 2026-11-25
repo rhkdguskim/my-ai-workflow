@@ -1,0 +1,18 @@
+# my-ai-workflow rules
+rules:
+  proposal:
+    - "Name specs in the Capabilities section by their full path under openspec/specs (for example phase1/order-service/checkout)."
+    - "Look up the owners of every touched app and interface in workflow.json and list them in the Impact section."
+  specs:
+    - "Start each requirement title with its id and put the status line directly under it. Get new ids with `aiwf next-id`."
+    - "A requirement states one observable behavior. Refer to times and limits by their key in constants.yaml."
+    - "Keep one or two scenarios per requirement as the pass condition. Concrete values and edge cases go in the .feature files under openspec/tests."
+    - "Do not write anything that was not confirmed in code or existing documents. Leave a line starting with 'Unverified' where confirmation is needed."
+  design:
+    - "Record a decision that outlives this change with `aiwf add decision <title>` in openspec/project/decisions and refer to it by id."
+  tasks:
+    - "When a requirement changes, include a task to update the matching .feature file in openspec/tests."
+    - "When an interface changes, put the contract file edit and the info.version bump before any code task."
+    - "The first task confirms that `aiwf check --gate <change>` passes and the last task confirms that `aiwf check` passes."
+    - "While implementing, set the requirement status to implemented and put the ids in code comments and automated tests."
+    - "When archive creates a new spec.md, include a task to replace the Purpose placeholder with one paragraph stating the purpose of the capability."

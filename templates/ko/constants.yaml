@@ -1,0 +1,8 @@
+# {{phase}}의 시간 · 한계 값. 스펙과 테스트는 값을 직접 쓰지 않고 키로 가리킨다.
+# 항목 형식:
+#   <키>:
+#     value: 5
+#     unit: s
+#     decision: D-0xx        # 값을 정한 결정 (없으면 생략)
+#     symbol: kHeartbeatSec  # 코드의 상수 이름
+constants: {}

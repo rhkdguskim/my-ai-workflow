@@ -1,0 +1,11 @@
+asyncapi: 3.0.0
+info:
+  title: {{id}}
+  version: 0.1.0
+# RabbitMQ는 servers.<name>.protocol: amqp 와 channels.<name>.bindings.amqp (exchange, queue, routingKey)로 적는다.
+# WebSocket은 protocol: ws 로 적는다.
+channels: {}
+operations: {}
+components:
+  messages: {}
+  schemas: {}

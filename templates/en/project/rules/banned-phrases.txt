@@ -1,0 +1,14 @@
+# Wording that cannot be judged. One per line, matched case-insensitively as a substring.
+# Add or remove entries for your project. Documents in this folder (rules/) are not scanned.
+as needed
+as appropriate
+if necessary
+properly
+seamlessly
+efficiently
+in a timely manner
+user-friendly
+and so on
+should work
+TBD
+TODO

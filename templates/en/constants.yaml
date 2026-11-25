@@ -1,0 +1,8 @@
+# Times and limits of {{phase}}. Specs and tests refer to a value by its key instead of repeating it.
+# Entry format:
+#   <key>:
+#     value: 5
+#     unit: s
+#     decision: D-0xx        # decision that set the value (omit if none)
+#     symbol: kHeartbeatSec  # constant name in code
+constants: {}

@@ -1,0 +1,11 @@
+asyncapi: 3.0.0
+info:
+  title: {{id}}
+  version: 0.1.0
+# RabbitMQ: servers.<name>.protocol: amqp and channels.<name>.bindings.amqp (exchange, queue, routingKey).
+# WebSocket: protocol: ws.
+channels: {}
+operations: {}
+components:
+  messages: {}
+  schemas: {}

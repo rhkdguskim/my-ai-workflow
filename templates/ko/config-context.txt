@@ -1,0 +1,9 @@
+이 프로젝트는 my-ai-workflow 규칙을 따른다. 전체 규칙: openspec/project/rules/spec-writing.md
+- 스펙 경로: openspec/specs/<phase>/<app>/<capability>/spec.md (phase가 없는 프로젝트는 <app>/<capability>). 인터페이스 동작 규칙은 <phase>/interfaces/<interface>/spec.md.
+- 앱 · 인터페이스 · ID 접두어 · 담당자는 openspec/workflow.json에 있다. 목록에 없는 앱 경로에 스펙을 만들지 않는다.
+- 요구사항 제목은 ID로 시작한다: `### Requirement: <PREFIX>-FR-NN <이름>`. 새 ID는 `aiwf next-id <app>`로 받는다. 번호는 재사용하지 않는다.
+- 요구사항 제목 바로 아래에 `- 상태: planned|implemented|withdrawn`을 적는다. 근거 결정이 있으면 `- 결정: D-0xx`.
+- 테스트 시나리오는 Gherkin으로 openspec/tests/<스펙과 같은 경로>/*.feature에 쓴다. 시나리오마다 `@<요구사항 ID>-Tnn` 태그를 하나 단다.
+- 기계 계약은 openspec/contracts/<phase>/<interface>/{openapi,asyncapi}.yaml이다. 코드보다 계약을 먼저 고치고 info.version을 올린다.
+- 구현을 시작하기 전에 `aiwf check --gate <change>`가 통과해야 한다. approval.json은 사람만 만든다.
+- 작업을 끝내기 전에 `aiwf check`를 통과시킨다. 검사를 통과시키려고 규칙 파일이나 상한을 바꾸지 않는다.

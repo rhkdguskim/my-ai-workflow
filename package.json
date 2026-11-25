@@ -1,0 +1,29 @@
+{
+  "name": "my-ai-workflow",
+  "version": "0.1.0",
+  "description": "Team spec workflow on top of OpenSpec: phase/app/capability layout, Gherkin test scenarios, OpenAPI/AsyncAPI contracts, traceability and anti-slop checks.",
+  "type": "module",
+  "license": "MIT",
+  "author": "rhkdguskim",
+  "repository": "github:rhkdguskim/my-ai-workflow",
+  "bin": {
+    "aiwf": "bin/aiwf.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "files": [
+    "bin",
+    "src",
+    "templates",
+    "skills",
+    ".claude-plugin",
+    "AGENTS.md"
+  ],
+  "dependencies": {
+    "@fission-ai/openspec": "^2.2.0"
+  }
+}

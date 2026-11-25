@@ -1,0 +1,11 @@
+{
+  "name": "my-ai-workflow",
+  "owner": { "name": "rhkdguskim" },
+  "plugins": [
+    {
+      "name": "my-ai-workflow",
+      "source": "./",
+      "description": "Spec-driven team workflow on top of OpenSpec: phase/app/capability specs, Gherkin test scenarios, OpenAPI/AsyncAPI contracts, traceability and anti-slop checks."
+    }
+  ]
+}

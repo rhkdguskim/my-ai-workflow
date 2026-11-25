@@ -1,0 +1,9 @@
+This project follows the my-ai-workflow rules. Full rules: openspec/project/rules/spec-writing.md
+- Spec path: openspec/specs/<phase>/<app>/<capability>/spec.md (<app>/<capability> when the project has no phases). Interface behavior rules live in <phase>/interfaces/<interface>/spec.md.
+- Apps, interfaces, id prefixes and owners are listed in openspec/workflow.json. Do not create specs under an app path that is not listed there.
+- A requirement title starts with its id: `### Requirement: <PREFIX>-FR-NN <name>`. Get a new id with `aiwf next-id <app>`. Numbers are never reused.
+- Directly under the title write `- Status: planned|implemented|withdrawn`. Add `- Decisions: D-0xx` when a decision backs it.
+- Test scenarios are Gherkin files in openspec/tests/<same path as the spec>/*.feature. Each scenario carries one `@<requirement id>-Tnn` tag.
+- Machine contracts are openspec/contracts/<phase>/<interface>/{openapi,asyncapi}.yaml. Change the contract before the code and bump info.version.
+- `aiwf check --gate <change>` must pass before implementation starts. Only humans create approval.json.
+- `aiwf check` must pass before work is finished. Never edit rule files or limits to make a check pass.
