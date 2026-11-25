@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { readText, UserError } from './util.mjs';
+import { t } from './i18n.mjs';
 
 export const CONFIG_REL = 'openspec/workflow.json';
 export const LANGUAGES = ['ko', 'en'];
@@ -23,7 +24,12 @@ export function defaultConfig(language = 'en', phases = []) {
       baseRef: 'origin/main',
       tools: {
         openapiBreaking: ['oasdiff', 'breaking', '{base}', '{head}', '--fail-on', 'ERR'],
-        asyncapiBreaking: null,
+        asyncapiBreaking: {
+          classify: 'asyncapi-diff',
+          command: ['asyncapi', 'diff', '{base}', '{head}', '--type', 'all', '--format', 'json'],
+          // Used when the `asyncapi` binary is not installed (`aiwf tools install`).
+          fallback: ['npx', '-y', '@asyncapi/cli', 'diff', '{base}', '{head}', '--type', 'all', '--format', 'json'],
+        },
       },
     },
   };
@@ -35,12 +41,12 @@ export function configPath(root) {
 
 export function loadConfig(root) {
   const file = configPath(root);
-  if (!fs.existsSync(file)) throw new UserError(`${CONFIG_REL} not found. Run \`aiwf init\` first.`);
+  if (!fs.existsSync(file)) throw new UserError(t('CONFIG_NOT_FOUND', CONFIG_REL));
   let raw;
   try {
     raw = JSON.parse(readText(file));
   } catch (e) {
-    throw new UserError(`${CONFIG_REL} is not valid JSON: ${e.message}`);
+    throw new UserError(t('CONFIG_BAD_JSON', CONFIG_REL, e.message));
   }
   const base = defaultConfig();
   const cfg = {
@@ -50,9 +56,9 @@ export function loadConfig(root) {
     trace: { ...base.trace, ...raw.trace },
     contracts: { ...base.contracts, ...raw.contracts, tools: { ...base.contracts.tools, ...raw.contracts?.tools } },
   };
-  if (!LANGUAGES.includes(cfg.language)) throw new UserError(`${CONFIG_REL}: language must be one of ${LANGUAGES.join(', ')}`);
+  if (!LANGUAGES.includes(cfg.language)) throw new UserError(t('CONFIG_BAD_LANGUAGE', CONFIG_REL, LANGUAGES.join(', ')));
   for (const key of ['phases', 'apps', 'interfaces', 'idKinds']) {
-    if (!Array.isArray(cfg[key])) throw new UserError(`${CONFIG_REL}: ${key} must be an array`);
+    if (!Array.isArray(cfg[key])) throw new UserError(t('CONFIG_NOT_ARRAY', CONFIG_REL, key));
   }
   return cfg;
 }

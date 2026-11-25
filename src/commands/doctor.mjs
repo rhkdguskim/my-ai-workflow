@@ -1,6 +1,7 @@
 import { SUPPORTED, openspecVersion, isSupported, listSpecs, parseSpec, cliSpecOutline } from '../openspec-adapter.mjs';
 import { loadConfig } from '../config.mjs';
 import { readText, findExecutable } from '../util.mjs';
+import { t } from '../i18n.mjs';
 
 const has = (bin) => findExecutable(bin) !== null;
 
@@ -19,9 +20,9 @@ export function diagnose(root, { sample = 5 } = {}) {
 
   const version = openspecVersion(root);
   const range = `>=${SUPPORTED.min.join('.')} <${SUPPORTED.belowMajor}.0.0`;
-  if (!version) fail('openspec CLI not found. Install with: npm install -g @fission-ai/openspec');
-  else if (!isSupported(version)) fail(`openspec ${version.join('.')} is outside the tested range ${range}.`);
-  else lines.push(`ok    openspec ${version.join('.')} (tested range ${range})`);
+  if (!version) fail(t('OS_CLI_MISSING'));
+  else if (!isSupported(version)) fail(t('DR_OUT_OF_RANGE', version.join('.'), range));
+  else lines.push(`ok    ${t('DR_VERSION_OK', version.join('.'), range)}`);
 
   if (version && root) {
     const specs = listSpecs(root).slice(0, sample);
@@ -29,32 +30,33 @@ export function diagnose(root, { sample = 5 } = {}) {
     for (const spec of specs) {
       const cli = cliSpecOutline(root, spec.id);
       const own = parseSpec(readText(spec.file)).requirements.map((r) => ({ name: r.name, scenarios: r.scenarios.map((s) => s.name) }));
-      if (!cli) fail(`openspec could not read spec "${spec.id}" (run: openspec validate ${spec.id} --type spec).`);
+      if (!cli) fail(t('DR_UNREADABLE', spec.id));
       else if (JSON.stringify(cli) !== JSON.stringify(own)) {
         drift++;
-        fail(`spec "${spec.id}" is read differently by openspec and aiwf; src/openspec-adapter.mjs needs an update.`);
+        fail(t('DR_DRIFT', spec.id));
       }
     }
-    if (specs.length && !drift) lines.push(`ok    spec format matches openspec for ${specs.length} sampled spec(s)`);
-    if (!specs.length) lines.push('note  no specs yet; format comparison skipped');
+    if (specs.length && !drift) lines.push(`ok    ${t('DR_FORMAT_OK', specs.length)}`);
+    if (!specs.length) lines.push(`note  ${t('DR_NO_SPECS')}`);
   }
 
   if (root) {
     try {
       const cfg = loadConfig(root);
-      lines.push(`ok    workflow.json (language ${cfg.language}, ${cfg.apps.length} app(s), ${cfg.interfaces.length} interface(s))`);
+      lines.push(`ok    ${t('DR_WORKFLOW', cfg.language, cfg.apps.length, cfg.interfaces.length)}`);
       const kinds = new Set(cfg.interfaces.flatMap((i) => i.kinds ?? []));
       for (const kind of kinds) {
-        const cmd = cfg.contracts.tools[`${kind}Breaking`];
-        if (!cmd) lines.push(`note  no breaking-change tool configured for ${kind} (contracts.tools.${kind}Breaking)`);
-        else lines.push(`${has(cmd[0]) ? 'ok   ' : 'note '} ${kind} breaking-change tool: ${cmd[0]}${has(cmd[0]) ? '' : ' (not installed)'}`);
+        const tool = cfg.contracts.tools[`${kind}Breaking`];
+        const cmd = Array.isArray(tool) ? tool : tool?.command;
+        if (!cmd) lines.push(`note  ${t('DR_NO_TOOL', kind)}`);
+        else lines.push(`${has(cmd[0]) ? 'ok   ' : 'note '} ${t('DR_TOOL', kind, cmd[0])}${has(cmd[0]) ? '' : t('DR_NOT_INSTALLED')}`);
       }
     } catch (e) {
       fail(e.message);
     }
-  } else fail('No openspec/ folder found. Run `openspec init` first.');
+  } else fail(t('NO_OPENSPEC'));
 
-  lines.push(`${has('git') ? 'ok   ' : 'note '} git${has('git') ? '' : ' not found; contract comparison is skipped'}`);
+  lines.push(has('git') ? 'ok    git' : `note  ${t('DR_GIT_MISSING')}`);
   return { ok, lines, version };
 }
 

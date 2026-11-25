@@ -166,3 +166,44 @@ test('contractVersion reads info.version', () => {
   assert.equal(contractVersion("asyncapi: 3.0.0\ninfo:\n  version: '2.0.0' # note\n"), '2.0.0');
   assert.equal(contractVersion('openapi: 3.1.0\npaths: {}\n'), null);
 });
+
+const DELTA = `openspec/changes/add-hold/specs/phase1/order-service/checkout/spec.md`;
+const TASKS = 'openspec/changes/add-hold/tasks.md';
+const tasksCodes = (files) => codes(project({ [S]: SPEC(REQ('ORD-FR-07', 'planned')), ...files }), { only: ['tasks'] });
+
+test('every added or modified requirement of a change is covered by exactly one task group', () => {
+  const delta = `## ADDED Requirements\n${REQ('ORD-FR-08', 'planned')}\n## MODIFIED Requirements\n${REQ('ORD-FR-07', 'planned')}\n## REMOVED Requirements\n### Requirement: ORD-FR-05 Old\n`;
+  assert.deepEqual(tasksCodes({ [DELTA]: delta, [TASKS]: '## 1. Hold\n- [ ] 1.1 ORD-FR-08 contract\n- [ ] 1.2 ORD-FR-08-T01 scenario\n## 2. Modify\n- [ ] 2.1 ORD-FR-07\n' }), []);
+  assert.deepEqual(tasksCodes({ [DELTA]: delta, [TASKS]: '## 1. Hold\n- [ ] 1.1 ORD-FR-08\n' }), ['TASK_REQ_MISSING']);
+  assert.deepEqual(tasksCodes({ [DELTA]: delta, [TASKS]: '## 1. A\n- [ ] 1.1 ORD-FR-08 ORD-FR-07\n## 2. B\n- [ ] 2.1 ORD-FR-08-T01\n' }), ['TASK_REQ_DUPLICATE']);
+});
+
+test('a change without tasks.md is not checked for task coverage', () => {
+  assert.deepEqual(tasksCodes({ [DELTA]: `## ADDED Requirements\n${REQ('ORD-FR-08', 'planned')}` }), []);
+});
+
+test('Korean translation-style phrases in the shipped list are reported', () => {
+  const banned = fs.readFileSync(new URL('../templates/ko/project/rules/banned-phrases.txt', import.meta.url), 'utf8');
+  const root = project({ [S]: SPEC(REQ('ORD-FR-07', 'planned') + '주문은 게이트웨이에 의해 보류된다.\n'), 'openspec/project/rules/banned-phrases.txt': banned });
+  assert.deepEqual(codes(root, { only: ['slop'] }), ['BANNED_PHRASE']);
+});
+
+test('asyncapi changes are classified conservatively', async () => {
+  const { isBreakingChange, breakingAsyncapiChanges } = await import('../src/checks/asyncapi-diff.mjs');
+  const p = '/channels/orders/messages/held/payload';
+  const cases = [
+    [{ action: 'edit', path: '/info/version' }, false],
+    [{ action: 'edit', path: `${p}/properties/reason/description` }, false],
+    [{ action: 'add', path: `${p}/properties/note` }, false],
+    [{ action: 'add', path: '/channels/refunds' }, false],
+    [{ action: 'remove', path: `${p}/required/1` }, false],
+    [{ action: 'add', path: `${p}/required/1` }, true],
+    [{ action: 'add', path: `${p}/properties/state/enum/3` }, true],
+    [{ action: 'remove', path: `${p}/properties/reason` }, true],
+    [{ action: 'edit', path: `${p}/properties/reason/type` }, true],
+    [{ action: 'edit', path: '/channels/orders/address' }, true],
+  ];
+  for (const [change, expected] of cases) assert.equal(isBreakingChange(change), expected, `${change.action} ${change.path}`);
+  assert.equal(breakingAsyncapiChanges('not json'), null);
+  assert.equal(breakingAsyncapiChanges('warn\n{"changes":[{"action":"edit","path":"/info/version"}]}').length, 0);
+});

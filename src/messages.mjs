@@ -35,6 +35,8 @@ const MESSAGES = {
   CONTRACT_VERSION_NOT_BUMPED: { en: 'Contract files changed since {0} but info.version is still {1}.', ko: '{0} 이후 계약 파일이 바뀌었는데 info.version이 {1} 그대로입니다.' },
   CONTRACT_BREAKING: { en: 'Breaking change since {0} without a major version bump ({1} -> {2}). {3}', ko: '{0} 이후 호환이 깨지는 변경인데 주 버전이 오르지 않았습니다 ({1} -> {2}). {3}' },
   CONTRACT_TOOL_MISSING: { en: 'Breaking-change tool for {0} is not configured or not installed; compatibility was not checked.', ko: '{0} 호환 검사 도구가 설정되지 않았거나 설치되지 않아 호환성은 검사하지 않았습니다.' },
+  TASK_REQ_MISSING: { en: 'Requirement {0} of change "{1}" is not covered by any task group in tasks.md.', ko: '변경 "{1}"의 요구사항 {0}를 맡은 작업 묶음이 tasks.md에 없습니다.' },
+  TASK_REQ_DUPLICATE: { en: 'Requirement {0} is spread over several task groups (lines {1}); keep it in one slice.', ko: '요구사항 {0}가 작업 묶음 여러 개에 나뉘어 있습니다 ({1}행). 한 묶음에 둡니다.' },
   CONTRACT_BASE_UNRESOLVED: { en: 'Git ref "{0}" cannot be resolved; contract changes were not compared.', ko: 'Git 기준 "{0}"를 찾을 수 없어 계약 변경을 비교하지 않았습니다.' },
 };
 

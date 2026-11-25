@@ -4,13 +4,14 @@ import { loadConfig, saveConfig, specsDir, contractsDir, projectDir, requirement
 import { buildModel } from '../model.mjs';
 import { template } from './init.mjs';
 import { rel, writeNew, render, UserError } from '../util.mjs';
+import { t } from '../i18n.mjs';
 
 const CONTRACT_KINDS = ['openapi', 'asyncapi'];
 
 function resolvePhase(cfg, flags) {
   if (!cfg.phases.length) return null;
   const phase = typeof flags.phase === 'string' ? flags.phase : cfg.phases.length === 1 ? cfg.phases[0] : null;
-  if (!phase || !cfg.phases.includes(phase)) throw new UserError(`--phase is required; one of ${cfg.phases.join(', ')}`);
+  if (!phase || !cfg.phases.includes(phase)) throw new UserError(t('PHASE_REQUIRED', cfg.phases.join(', ')));
   return phase;
 }
 
@@ -18,36 +19,37 @@ const str = (v) => (typeof v === 'string' ? v : '');
 const list = (v) => str(v).split(',').map((s) => s.trim()).filter(Boolean);
 
 function addApp(root, cfg, [id], flags) {
-  if (!id || !str(flags.prefix)) throw new UserError('Usage: aiwf add app <id> --prefix <PREFIX> [--phase <phase>] [--owner <name>] [--source <dir,dir>]');
-  if (id === 'interfaces') throw new UserError('"interfaces" is a reserved folder name.');
+  if (!id || !str(flags.prefix)) throw new UserError(t('USAGE', 'aiwf add app <id> --prefix <PREFIX> [--phase <phase>] [--owner <name>] [--source <dir,dir>]'));
+  if (id === 'interfaces') throw new UserError(t('RESERVED_NAME'));
   const phase = resolvePhase(cfg, flags);
-  if (cfg.apps.some((a) => a.id === id && (a.phase ?? null) === phase)) throw new UserError(`App "${id}" already exists.`);
-  if (cfg.apps.some((a) => a.prefix === flags.prefix)) throw new UserError(`Prefix "${flags.prefix}" is already used.`);
+  if (cfg.apps.some((a) => a.id === id && (a.phase ?? null) === phase)) throw new UserError(t('APP_EXISTS', id));
+  // The same app keeps its prefix across phases so that its numbering continues.
+  if (cfg.apps.some((a) => a.prefix === flags.prefix && a.id !== id)) throw new UserError(t('PREFIX_USED', flags.prefix));
   const app = { id, prefix: flags.prefix, ...(phase ? { phase } : {}), owner: str(flags.owner), source: list(flags.source) };
   cfg.apps.push(app);
   saveConfig(root, cfg);
   const file = path.join(specsDir(root), phase ?? '', id, 'app.md');
   writeNew(file, render(template(cfg.language, 'app.md'), { app: id, prefix: app.prefix, owner: app.owner, phase: phase ?? '' }));
-  console.log(`Added app ${id} (${app.prefix}). Fill in ${rel(root, file)}.`);
+  console.log(t('APP_ADDED', id, app.prefix, rel(root, file)));
 }
 
 function addInterface(root, cfg, [id], flags) {
   const kinds = list(flags.kinds);
   if (!id || !kinds.length || kinds.some((k) => !CONTRACT_KINDS.includes(k))) {
-    throw new UserError(`Usage: aiwf add interface <id> --kinds <${CONTRACT_KINDS.join('|')}[,..]> [--phase <phase>] [--owner <name>] [--consumers <a,b>]`);
+    throw new UserError(t('USAGE', `aiwf add interface <id> --kinds <${CONTRACT_KINDS.join('|')}[,..]> [--phase <phase>] [--owner <name>] [--consumers <a,b>]`));
   }
   const phase = resolvePhase(cfg, flags);
-  if (cfg.interfaces.some((i) => i.id === id && (i.phase ?? null) === phase)) throw new UserError(`Interface "${id}" already exists.`);
+  if (cfg.interfaces.some((i) => i.id === id && (i.phase ?? null) === phase)) throw new UserError(t('INTERFACE_EXISTS', id));
   cfg.interfaces.push({ id, ...(phase ? { phase } : {}), owner: str(flags.owner), consumers: list(flags.consumers), kinds });
   saveConfig(root, cfg);
   const dir = path.join(contractsDir(root), phase ?? '', id);
   for (const kind of kinds) writeNew(path.join(dir, `${kind}.yaml`), render(template(cfg.language, `${kind}.yaml`), { id }));
-  console.log(`Added interface ${id}. Contract files: ${rel(root, dir)}`);
+  console.log(t('INTERFACE_ADDED', id, rel(root, dir)));
 }
 
 function addDecision(root, cfg, words) {
   const title = words.join(' ').trim();
-  if (!title) throw new UserError('Usage: aiwf add decision <title>');
+  if (!title) throw new UserError(t('USAGE', 'aiwf add decision <title>'));
   const dir = path.join(projectDir(root), 'decisions');
   fs.mkdirSync(dir, { recursive: true });
   const numbers = fs.readdirSync(dir).map((f) => Number(f.match(/^D-(\d+)/)?.[1])).filter(Number.isFinite);
@@ -63,7 +65,7 @@ export function add(root, [kind, ...rest], flags) {
   if (kind === 'app') addApp(root, cfg, rest, flags);
   else if (kind === 'interface') addInterface(root, cfg, rest, flags);
   else if (kind === 'decision') addDecision(root, cfg, rest);
-  else throw new UserError('Usage: aiwf add <app|interface|decision> ...');
+  else throw new UserError(t('USAGE', 'aiwf add <app|interface|decision> ...'));
   return 0;
 }
 
@@ -74,7 +76,7 @@ export function nextId(root, [id], flags) {
   const match = (e) => e.id === id && (e.phase ?? null) === phase;
   const app = cfg.apps.find(match);
   const iface = cfg.interfaces.find(match);
-  if (!app && !iface) throw new UserError(`Unknown app or interface "${id ?? ''}".`);
+  if (!app && !iface) throw new UserError(t('UNKNOWN_OWNER_ENTRY', id ?? ''));
   const kind = str(flags.kind) || cfg.idKinds[0];
   const stem = app ? `${app.prefix}-${kind}-` : `${interfaceShortId(iface.id)}-R`;
   const pattern = requirementIdPattern(app ? { kind: 'app', entry: app } : { kind: 'interface', entry: iface }, cfg);

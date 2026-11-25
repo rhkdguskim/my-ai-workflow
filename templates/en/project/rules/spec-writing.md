@@ -56,6 +56,38 @@ Feature: Payment failure handling
 - Steps use concrete values. A scenario has at most 7 steps.
 - An automated test names its test id in its name, an attribute or a comment.
 
+### Questions that find edge and error scenarios
+
+For every new or changed requirement, draw candidates from these questions. Keep only situations that can actually happen; drop questions that do not apply.
+
+| Question | Examples |
+|---|---|
+| Input | Value missing, malformed, out of range? |
+| Target state | Target missing? Already in that state? Action not allowed in the current state? |
+| Repeat and concurrency | Same request twice? Two at once? MQ message duplicated or out of order? |
+| Authorization | No token or no permission? |
+| Dependencies | DB, external API or MQ fails or is slow? |
+| Connection | Event while the WebSocket was down? Reconnect? |
+
+- A case that is handled as defined and continues becomes a `.feature` scenario of the original requirement.
+- A case that ends in a failure visible to the caller becomes its own requirement. Error codes and payloads live in the contract file.
+- Do not add exceptions that were not confirmed in code or by the user.
+
+## Changing requirements
+
+- `## MODIFIED Requirements` repeats the whole requirement. Copy unchanged sentences character for character from the current spec; archive replaces the old requirement with this block.
+- Before a decision changes existing behavior, find why it behaves that way now (code, commits, decision records) and write it in the decision record's `Context`.
+- A decision record lists rejected options with reasons. Recommend the design you would build if this requirement had existed from the start, not a patch on the current design.
+
+## Splitting work (tasks.md)
+
+- A task group (`## ` section) is a narrow vertical slice through contract, scenario, code and test. A finished group can be checked on its own.
+- Every ADDED or MODIFIED requirement id is written in exactly one group (the `tasks` check of `aiwf check`).
+- The first line under a group title is `Blocked by: 1, 2` or `Blocked by: none`. Groups without a blocking relation that edit the same contract file or setting are merged or given one.
+- Inside a group the order is contract edit, failing scenario and test, implementation, passing check. A bug fix starts with a failing test that reproduces the bug. A non-functional requirement starts with measuring the current value.
+- A breaking contract change is split into three groups: add the new shape, move the callers (one group per consumer), delete the old shape.
+- Completion conditions are real API responses, WebSocket or MQ messages, scenario runs. "Build succeeds" is not a completion condition.
+
 ## Contracts
 
 - When an interface changes, edit the contract file before the code.
@@ -73,6 +105,22 @@ Feature: Payment failure handling
 - The owner (`owner` in `workflow.json`) approves the proposal and spec changes before implementation starts.
 - A human records approval with `aiwf approve <change> --by <name>`. An agent never runs this command on its own.
 - Before implementing, an agent runs `aiwf check --gate <change>`; if it fails, the agent stops and reports.
+
+## Style
+
+Write sentences that have one meaning on first reading.
+
+| Avoid | Write instead |
+|---|---|
+| Several names for one thing (order, purchase, request) | The single name from the glossary |
+| Passive voice that hides the actor | Name the actor: "The system SHALL retry 3 times" |
+| Inflated verbs (leverage, utilize) | use |
+| Two behaviors in one sentence | Split the requirement |
+| Hedging ("may possibly") | State what was confirmed, otherwise an `Unverified:` line |
+| Unexplained jargon (fan-out, kickoff) | Explain it in parentheses on first use, then keep the same word |
+| A sentence that would fit any other project's document | A behavior or a number |
+
+Wording a machine can catch is listed in `banned-phrases.txt`.
 
 ## What not to write
 

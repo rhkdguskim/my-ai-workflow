@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { findRoot, parseArgs, UserError } from '../src/util.mjs';
+import { resolveLanguage, setLanguage, saveUserLanguage, userConfigPath, help, t, LANGUAGES } from '../src/i18n.mjs';
 import { init } from '../src/commands/init.mjs';
 import { add, nextId } from '../src/commands/add.mjs';
 import { check } from '../src/commands/check.mjs';
@@ -7,30 +8,31 @@ import { approve } from '../src/commands/approve.mjs';
 import { doctor } from '../src/commands/doctor.mjs';
 import { openspec } from '../src/commands/openspec.mjs';
 import { skills } from '../src/commands/skills.mjs';
-
-const HELP = `aiwf - team spec workflow on top of OpenSpec
-
-  aiwf init [--lang ko|en] [--phases phase1,phase2]   set up openspec/workflow.json, rules and folders
-  aiwf add app <id> --prefix <PREFIX> [--phase p] [--owner name] [--source dir,dir]
-  aiwf add interface <id> --kinds openapi,asyncapi [--phase p] [--owner name] [--consumers a,b]
-  aiwf add decision <title>
-  aiwf next-id <app-or-interface id> [--kind FR] [--phase p]
-  aiwf check [--only structure,ids,trace,slop,approval,contracts] [--gate <change>] [--json]
-  aiwf approve <change> --by <owner name>
-  aiwf doctor                                         verify OpenSpec compatibility
-  aiwf skills install [--dir <folder>]                copy skills for agents without plugin support (default ~/.agents/skills)
-  aiwf openspec status                                installed / latest / tested OpenSpec versions
-  aiwf openspec upgrade [--to <version>] [--force]    upgrade OpenSpec, refresh, verify
-  aiwf openspec <any openspec arguments>              pass through to the OpenSpec CLI
-`;
+import { tools } from '../src/commands/tools.mjs';
 
 const [command, ...rest] = process.argv.slice(2);
 const { flags, positional } = parseArgs(rest);
 const root = findRoot();
+setLanguage(resolveLanguage({ flag: typeof flags.lang === 'string' ? flags.lang : null, root }).language);
+
 const needRoot = () => {
-  if (!root) throw new UserError('No openspec/ folder found. Run `openspec init` in the project root first.');
+  if (!root) throw new UserError(t('NO_OPENSPEC'));
   return root;
 };
+
+/** `aiwf lang` shows the display language and where it came from; `aiwf lang ko|en` saves it for this user. */
+function lang([value]) {
+  if (value === undefined) {
+    const { language, source } = resolveLanguage({ flag: typeof flags.lang === 'string' ? flags.lang : null, root });
+    console.log(t('LANG_SHOW', language, source));
+    return 0;
+  }
+  if (!LANGUAGES.includes(value)) throw new UserError(t('LANG_INVALID', LANGUAGES.join(', ')));
+  saveUserLanguage(value);
+  setLanguage(value);
+  console.log(t('LANG_SAVED', value, userConfigPath()));
+  return 0;
+}
 
 try {
   let code;
@@ -41,13 +43,15 @@ try {
     case 'check': code = check(needRoot(), flags); break;
     case 'approve': code = approve(needRoot(), positional, flags); break;
     case 'doctor': code = doctor(root); break;
+    case 'tools': code = tools(root, positional); break;
     case 'skills': code = skills(root, positional, flags); break;
+    case 'lang': code = lang(positional); break;
     case 'openspec': code = openspec(root, positional, flags, rest); break;
     case undefined:
     case 'help':
     case '--help':
-    case '-h': console.log(HELP); code = 0; break;
-    default: console.error(`Unknown command "${command}".\n\n${HELP}`); code = 2;
+    case '-h': console.log(help()); code = 0; break;
+    default: console.error(`${t('UNKNOWN_COMMAND', command)}\n\n${help()}`); code = 2;
   }
   process.exitCode = code;
 } catch (e) {

@@ -11,6 +11,9 @@ rules:
   design:
     - "Record a decision that outlives this change with `aiwf add decision <title>` in openspec/project/decisions and refer to it by id."
   tasks:
+    - "A task group (## section) is a vertical slice through contract, scenario, code and test. Every ADDED or MODIFIED requirement id is written in exactly one group."
+    - "The first line under a group title names the groups that must finish first: `Blocked by: 1, 2` or `Blocked by: none`."
+    - "Inside a group the order is contract edit, failing scenario and test, implementation, passing check. A breaking contract change is split into three groups: add the new shape, move the callers, delete the old shape."
     - "When a requirement changes, include a task to update the matching .feature file in openspec/tests."
     - "When an interface changes, put the contract file edit and the info.version bump before any code task."
     - "The first task confirms that `aiwf check --gate <change>` passes and the last task confirms that `aiwf check` passes."

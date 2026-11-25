@@ -2,6 +2,7 @@ import { SUPPORTED, openspecVersion, runOpenspec } from '../openspec-adapter.mjs
 import { diagnose } from './doctor.mjs';
 import { init } from './init.mjs';
 import { UserError, run } from '../util.mjs';
+import { t } from '../i18n.mjs';
 
 const PACKAGE = '@fission-ai/openspec';
 const npm = (args) => run('npm', args);
@@ -12,9 +13,9 @@ function latestVersion() {
 }
 
 function status(root) {
-  const installed = openspecVersion(root)?.join('.') ?? 'not installed';
-  const latest = latestVersion() ?? 'unknown (npm registry not reachable)';
-  console.log(`installed: ${installed}\nlatest:    ${latest}\ntested:    >=${SUPPORTED.min.join('.')} <${SUPPORTED.belowMajor}.0.0`);
+  const installed = openspecVersion(root)?.join('.') ?? t('OS_NOT_INSTALLED');
+  const latest = latestVersion() ?? t('OS_UNKNOWN_LATEST');
+  console.log(`${t('OS_INSTALLED')}: ${installed}\n${t('OS_LATEST')}: ${latest}\n${t('OS_TESTED')}: >=${SUPPORTED.min.join('.')} <${SUPPORTED.belowMajor}.0.0`);
   return 0;
 }
 
@@ -24,29 +25,29 @@ function status(root) {
  * Prints the rollback command when verification fails.
  */
 function upgrade(root, flags) {
-  if (!root) throw new UserError('No openspec/ folder found. Run `openspec init` first.');
+  if (!root) throw new UserError(t('NO_OPENSPEC'));
   const before = openspecVersion(root)?.join('.') ?? null;
   const target = typeof flags.to === 'string' ? flags.to : latestVersion();
-  if (!target) throw new UserError('Cannot determine the target version. Pass --to <version>.');
+  if (!target) throw new UserError(t('OS_NO_TARGET'));
 
   const targetMajor = Number(target.split('.')[0]);
   if (targetMajor >= SUPPORTED.belowMajor && !flags.force) {
-    throw new UserError(`openspec ${target} is a new major version that aiwf has not been tested with. Re-run with --force to try it.`);
+    throw new UserError(t('OS_MAJOR', target));
   }
-  if (before === target) console.log(`openspec ${target} is already installed.`);
+  if (before === target) console.log(t('OS_ALREADY', target));
   else {
-    console.log(`Installing ${PACKAGE}@${target} (was ${before ?? 'not installed'})...`);
+    console.log(t('OS_INSTALLING', `${PACKAGE}@${target}`, before ?? t('OS_NOT_INSTALLED')));
     const res = npm(['install', '-g', `${PACKAGE}@${target}`]);
-    if (res.status !== 0) throw new UserError(`npm install failed:\n${res.stderr}`);
+    if (res.status !== 0) throw new UserError(t('OS_NPM_FAILED', res.stderr));
   }
 
   const update = runOpenspec(['update'], root);
-  console.log(update.ok ? 'openspec update: done' : `openspec update failed:\n${update.stdout}${update.stderr}`);
+  console.log(update.ok ? t('OS_UPDATE_DONE') : t('OS_UPDATE_FAILED', `${update.stdout}${update.stderr}`));
 
   init(root, {});
   const result = diagnose(root);
   console.log(`\n${result.lines.join('\n')}`);
-  if (!result.ok && before && before !== target) console.log(`\nTo roll back: npm install -g ${PACKAGE}@${before}`);
+  if (!result.ok && before && before !== target) console.log(`\n${t('OS_ROLLBACK', `npm install -g ${PACKAGE}@${before}`)}`);
   return result.ok && update.ok ? 0 : 1;
 }
 
@@ -58,6 +59,6 @@ export function openspec(root, [sub], flags, rawArgs = []) {
   if (sub === 'status') return status(root);
   if (sub === 'upgrade') return upgrade(root, flags);
   const res = runOpenspec(rawArgs, process.cwd(), { stdio: 'inherit' });
-  if (res.missing) throw new UserError('openspec CLI not found. Install with: npm install -g @fission-ai/openspec');
+  if (res.missing) throw new UserError(t('OS_CLI_MISSING'));
   return res.status ?? 1;
 }

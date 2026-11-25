@@ -12,7 +12,7 @@ Run the CLI as `aiwf <command>`, `node "<plugin root>/bin/aiwf.mjs" <command>` (
 | Command | Purpose |
 |---|---|
 | `aiwf check` | all checks; exit code 1 when any error exists |
-| `aiwf check --only ids,trace` | selected checks: `structure`, `ids`, `trace`, `slop`, `approval`, `contracts` |
+| `aiwf check --only ids,trace` | selected checks: `structure`, `ids`, `trace`, `slop`, `approval`, `contracts`, `tasks` |
 | `aiwf check --gate <change>` | also require owner approval for that change, even before any task is checked |
 | `aiwf check --json` | machine-readable findings |
 | `aiwf doctor` | OpenSpec version range and spec-format comparison with `openspec show` |
@@ -29,6 +29,8 @@ Each line is `file:line level CODE message`. Fix the content the finding points 
 - `TEST_*`, `REQ_NO_TEST`: add or move the Gherkin scenario, or correct its `@<id>-Tnn` tag. If a requirement is not built yet, its status is `planned`, not `implemented`.
 - `REQ_NO_CODE`, `TEST_NO_CODE` (warnings): add the id to the implementing code comment or automated test. Do not add an id to code that does not implement the requirement.
 - `BANNED_PHRASE`, `FILE_TOO_LONG`, `SCENARIO_TOO_LONG`: rewrite with a measurable statement, split the capability, or split the scenario.
+- `TASK_REQ_MISSING`: add the requirement to the task group that delivers it, or add a group for it. Do not list it in a group that does not build it.
+- `TASK_REQ_DUPLICATE` (warning): the requirement is split across slices. Move its work into one group, or explain to the user why it cannot be.
 - `APPROVAL_MISSING`: stop and tell the user which owners must run `aiwf approve <change> --by <name>`. Never record approval yourself.
 - `CONTRACT_VERSION_NOT_BUMPED`, `CONTRACT_BREAKING`: bump `info.version`; for a breaking change bump the major version after the consumers' owners agree.
 - `CONTRACT_TOOL_MISSING`, `CONTRACT_BASE_UNRESOLVED` (warnings): compatibility was not compared. Say so in your report; do not present the contract as verified.

@@ -1,12 +1,14 @@
 import { loadConfig } from '../config.mjs';
 import { buildModel } from '../model.mjs';
 import { Report } from '../report.mjs';
+import { currentLanguage } from '../i18n.mjs';
 import { checkStructure } from '../checks/structure.mjs';
 import { checkIds } from '../checks/ids.mjs';
 import { checkTrace } from '../checks/trace.mjs';
 import { checkSlop } from '../checks/slop.mjs';
 import { checkApproval } from '../checks/approval.mjs';
 import { checkContracts } from '../checks/contracts.mjs';
+import { checkTasks } from '../checks/tasks.mjs';
 
 export const CHECKS = {
   structure: checkStructure,
@@ -15,13 +17,14 @@ export const CHECKS = {
   slop: checkSlop,
   approval: checkApproval,
   contracts: checkContracts,
+  tasks: checkTasks,
 };
 
 /** Runs the selected checks (all by default) and returns the report. */
 export function runChecks(root, { only = null, gate = null } = {}) {
   const cfg = loadConfig(root);
   const model = buildModel(root, cfg);
-  const report = new Report(root, cfg.language);
+  const report = new Report(root, currentLanguage() ?? cfg.language);
   for (const [name, check] of Object.entries(CHECKS)) {
     if (only && !only.includes(name)) continue;
     check(model, report, { gate });

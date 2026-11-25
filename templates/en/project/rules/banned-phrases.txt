@@ -12,3 +12,7 @@ and so on
 should work
 TBD
 TODO
+# Inflated wording (unslop 26, 31). Use the plain verb.
+leverage
+utilize
+robust

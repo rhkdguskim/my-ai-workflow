@@ -4,6 +4,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { contractsDir } from '../config.mjs';
 import { rel, readText, run } from '../util.mjs';
+import { breakingAsyncapiChanges } from './asyncapi-diff.mjs';
 
 const git = (root, args) => spawnSync('git', args, { cwd: root, encoding: 'utf8' });
 
@@ -13,15 +14,30 @@ export function contractVersion(text) {
 
 const major = (v) => Number(String(v).match(/\d+/)?.[0] ?? NaN);
 
-function runBreakingTool(command, baseText, headFile) {
+/**
+ * `tool` is either a command array whose non-zero exit code means "breaking",
+ * or { classify: 'asyncapi-diff', command } whose JSON output aiwf classifies itself.
+ */
+function runBreakingTool(tool, baseText, headFile) {
+  const command = Array.isArray(tool) ? tool : tool?.command;
   if (!Array.isArray(command) || command.length === 0) return { available: false };
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'aiwf-'));
   const baseFile = path.join(tmp, path.basename(headFile));
   fs.writeFileSync(baseFile, baseText, 'utf8');
   try {
-    const [bin, ...args] = command.map((a) => a.replace('{base}', baseFile).replace('{head}', headFile));
-    const res = run(bin, args);
+    const fill = (cmd) => cmd.map((a) => a.replace('{base}', baseFile).replace('{head}', headFile));
+    let [bin, ...args] = fill(command);
+    let res = run(bin, args);
+    if (!res.found && Array.isArray(tool.fallback)) {
+      [bin, ...args] = fill(tool.fallback);
+      res = run(bin, args);
+    }
     if (!res.found) return { available: false };
+    if (tool.classify === 'asyncapi-diff') {
+      const breaking = breakingAsyncapiChanges(res.stdout);
+      if (breaking === null) return { available: false };
+      return { available: true, breaking: breaking.length > 0, output: breaking.map((c) => `${c.action} ${c.path}`).join(' | ') };
+    }
     return { available: true, breaking: res.status !== 0, output: `${res.stdout}${res.stderr}`.trim() };
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });

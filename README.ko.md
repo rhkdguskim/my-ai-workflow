@@ -98,6 +98,73 @@ aiwf check
     그러면 주문 "A-100"의 상태는 "on-hold"이다
 ```
 
+## 사용 방법
+
+변경 하나는 아래 순서로 진행한다. 에이전트에게는 오른쪽 열처럼 말하면 해당 스킬이 실행된다.
+
+| 단계 | 하는 일 | 에이전트에게 하는 말 · 명령 |
+|---|---|---|
+| 1. 요청 정리 | 무엇을 왜 바꾸는지, 범위 밖, 영향받는 앱 · 인터페이스, 제약을 인터뷰로 확정한다. 앱 사이 계약(REST · WebSocket · MQ)도 여기서 정한다 | "주문 보류 기능을 추가하고 싶어. 그릴미" (`aiwf-propose`) |
+| 2. 변경 작성 | OpenSpec 변경(proposal · 델타 스펙 · tasks.md)을 만든다. `aiwf-authoring` 규칙이 함께 적용된다 | `openspec-propose` (1단계가 끝나면 이어서 실행) |
+| 3. 시나리오 · 계약 | `.feature`와 계약 파일을 쓴다. 경계 · 오류 시나리오는 `spec-writing.md`의 질문 6개로 뽑는다 | 2단계에서 함께 작성 |
+| 4. 검사 | 구조, ID, 추적성, 표현, 계약, 작업 분할을 검사한다 | `aiwf check` |
+| 5. 승인 | 담당자가 직접 승인을 기록한다. 에이전트는 실행하지 않는다 | `aiwf approve <change> --by <이름>` |
+| 6. 구현 | 승인 관문을 통과한 뒤 tasks.md의 묶음 순서대로 구현한다 | `aiwf check --gate <change>` 후 `openspec-apply-change` |
+| 7. 스펙 대조 리뷰 | 코드가 요구사항 · 시나리오 · 계약대로인지 요구사항 ID별로 확인하고, CRITICAL · MAJOR만 고친다 | "이 변경 스펙대로 됐는지 리뷰해줘" (`aiwf-review`) |
+| 8. 마감 | 검사를 통과시키고 변경을 archive한다 | `aiwf check`, `openspec-archive-change` |
+
+이미 만든 앱을 처음 들여올 때는 1~3단계 대신 "기존 코드에서 스펙 추출해줘"(`aiwf-baseline`)로 baseline 변경을 만든다.
+
+### tasks.md 쓰는 법
+
+작업 묶음(`## ` 절) 하나는 계약 · 시나리오 · 코드 · 테스트를 끝까지 관통하는 세로 조각이다. ADDED · MODIFIED 요구사항 ID는 정확히 한 묶음에 적는다. 빠지면 `aiwf check`가 오류(`TASK_REQ_MISSING`)를, 여러 묶음에 나뉘면 경고(`TASK_REQ_DUPLICATE`)를 낸다.
+
+```markdown
+## 1. 관문
+선행: 없음
+- [ ] 1.1 `aiwf check --gate add-hold` 통과 확인
+
+## 2. 결제 실패 시 주문 보류
+선행: 1
+- [ ] 2.1 IF-01 계약에 OrderHeld 메시지 추가, info.version 올림
+- [ ] 2.2 ORD-FR-07-T01 시나리오와 실패하는 자동 테스트 작성
+- [ ] 2.3 ORD-FR-07 구현, 상태를 implemented로 변경
+- [ ] 2.4 `aiwf check` 통과 확인
+```
+
+### 언어 (한국어 · 영어)
+
+aiwf는 한국어와 영어를 지원한다. 언어는 두 가지다.
+
+- 문서 언어: `aiwf init`이 만드는 규칙 문서, 금지 표현 목록, 템플릿의 언어다. `workflow.json`의 `language`에 저장되고 팀 전체가 같이 쓴다. `--lang`을 주지 않으면 아래 표시 언어를 따른다.
+- 표시 언어: CLI가 보여 주는 도움말, 결과, 오류, 검사 메시지의 언어다. Claude Code나 Codex가 `aiwf`를 실행해도 같은 규칙으로 정해진다.
+
+표시 언어는 다음 순서에서 먼저 정해진 것을 쓴다.
+
+| 순서 | 출처 | 예 |
+|---|---|---|
+| 1 | 명령의 `--lang` | `aiwf check --lang ko` |
+| 2 | 환경 변수 `AIWF_LANG` | `AIWF_LANG=ko` |
+| 3 | 프로젝트 `openspec/workflow.json`의 `language` | `aiwf init --lang ko`로 만든 프로젝트 |
+| 4 | 사용자 설정 `~/.aiwf/config.json` | `aiwf lang ko`, `aiwf skills install --lang ko` |
+| 5 | 시스템 로캘 | 한국어 Windows(`ko-KR`), `LANG=ko_KR.UTF-8` |
+| 6 | 기본값 | 영어 |
+
+한국어로 쓰려면 다음 중 하나를 한다.
+
+```
+# Claude Code 플러그인: 한국어 OS면 따로 할 일이 없다. 강제로 정하려면
+npx -y github:rhkdguskim/my-ai-workflow lang ko
+
+# Codex 등: 스킬을 설치하면서 한국어로 정한다
+npx -y github:rhkdguskim/my-ai-workflow skills install --lang ko
+
+# 프로젝트를 한국어로 시작한다 (문서와 표시 모두 한국어)
+aiwf init --lang ko
+```
+
+`aiwf lang`은 지금 표시 언어와 그 출처를 보여 준다. OpenSpec 제목(`### Requirement:`, `#### Scenario:`)과 `SHALL` · `MUST`는 두 언어 모두 영어로 둔다.
+
 ## 명령
 
 | 명령 | 용도 |
@@ -111,7 +178,8 @@ aiwf check
 | `aiwf openspec status` | 설치 · 최신 · 시험한 OpenSpec 버전 |
 | `aiwf openspec upgrade [--to <v>] [--force]` | OpenSpec 업그레이드, `openspec update`, 설정 블록 갱신, doctor 실행 |
 | `aiwf openspec <인자>` | OpenSpec CLI로 그대로 전달 |
-| `aiwf skills install [--dir <폴더>]` | 플러그인을 지원하지 않는 에이전트용으로 스킬 복사 |
+| `aiwf skills install [--dir <폴더>] [--lang ko|en]` | 플러그인을 지원하지 않는 에이전트용으로 스킬 복사. `--lang`을 주면 표시 언어도 저장 |
+| `aiwf lang [ko|en]` | 표시 언어와 그 출처 보기, 또는 이 사용자의 표시 언어 저장 |
 
 ## 검사
 
@@ -122,18 +190,21 @@ aiwf check
 | `trace` | 테스트 ID 없는 시나리오, 중복되거나 대상 없는 테스트 ID, 다른 폴더에 놓인 테스트, 시나리오 없는 구현 요구사항 | 소스 코드 · 자동 테스트에 ID 없음 |
 | `slop` | 금지 표현, 줄 수 상한 초과 파일, 스텝 상한 초과 시나리오 | |
 | `approval` | 시작했거나 관문을 지정한 변경에 담당자 승인 없음 | 건드린 앱에 담당자 없음 |
+| `tasks` | 변경의 ADDED · MODIFIED 요구사항이 tasks.md의 어느 작업 묶음에도 없음 | 요구사항이 묶음 여러 개에 나뉨 |
 | `contracts` | 계약 파일 또는 `info.version` 없음, 버전을 올리지 않은 변경, 주 버전을 올리지 않은 호환 깨짐 | 비교 도구 또는 Git 기준 없음 |
 
-호환 깨짐은 `workflow.json`의 `contracts.tools`에 지정한 외부 도구로 판정한다. OpenAPI 기본값은 [oasdiff](https://github.com/oasdiff/oasdiff)이다. AsyncAPI는 기본값이 없다. `{base}`와 `{head}`를 파일 자리로 쓰고, 호환이 깨지면 0이 아닌 코드로 끝나는 명령을 지정한다. 도구가 없으면 버전 올림 규칙만 강제하고 경고로 알린다.
+호환 깨짐은 `workflow.json`의 `contracts.tools`에 지정한 외부 도구로 판정한다. OpenAPI 기본값은 [oasdiff](https://github.com/oasdiff/oasdiff)이다. AsyncAPI 기본값은 `npx @asyncapi/cli diff`를 실행하고 그 변경 목록을 aiwf가 직접 분류한다. 이 CLI가 페이로드 스키마 변경을 분류하지 않기 때문이다. `required` · `enum` 항목 추가, `required` 항목 외의 삭제, 설명 필드 밖의 값 수정을 호환 깨짐으로 본다. 메시지 방향은 구분하지 않는다. 다른 도구를 쓰려면 `{base}`와 `{head}`를 파일 자리로 쓰고 호환이 깨지면 0이 아닌 코드로 끝나는 명령 배열을 지정한다. 도구를 실행할 수 없으면 버전 올림 규칙만 강제하고 경고로 알린다.
 
 ## 스킬
 
 | 스킬 | 용도 |
 |---|---|
+| `aiwf-propose` | 요청이 OpenSpec 변경이 될 만큼 분명해질 때까지 사용자를 인터뷰 |
 | `aiwf-init` | 구조를 만들고 앱 · 인터페이스를 등록 |
 | `aiwf-authoring` | 스펙 · 시나리오 · 계약을 쓸 때마다 적용하는 규칙 |
 | `aiwf-check` | 검사 실행, 지적 해결, OpenSpec 업그레이드 |
 | `aiwf-baseline` | 기존 앱의 코드에서 스펙을 추출해 baseline 변경으로 작성 |
+| `aiwf-review` | 변경의 코드를 그 변경의 요구사항 · 시나리오 · 계약과 대조하고 심각한 지적을 고침 |
 
 ## OpenSpec 업데이트 대응
 
@@ -151,4 +222,4 @@ aiwf check
 
 ## 라이선스
 
-MIT
+MIT. 가져와 고쳐 쓴 외부 자료는 `THIRD_PARTY_NOTICES.md`에 있다.

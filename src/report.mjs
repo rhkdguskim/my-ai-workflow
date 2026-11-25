@@ -1,5 +1,6 @@
 import { format } from './messages.mjs';
 import { rel } from './util.mjs';
+import { t } from './i18n.mjs';
 
 export class Report {
   constructor(root, language) {
@@ -27,7 +28,7 @@ export class Report {
   }
   toText() {
     const lines = this.sorted().map((f) => `${f.file}:${f.line} ${f.level} ${f.code} ${f.message}`);
-    lines.push(`${this.errors.length} error(s), ${this.warnings.length} warning(s)`);
+    lines.push(t('SUMMARY', this.errors.length, this.warnings.length));
     return lines.join('\n');
   }
   toJSON() {

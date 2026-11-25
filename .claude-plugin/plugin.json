@@ -1,8 +1,10 @@
 {
   "name": "my-ai-workflow",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Spec-driven team workflow on top of OpenSpec: phase/app/capability specs, Gherkin test scenarios, OpenAPI/AsyncAPI contracts, traceability and anti-slop checks.",
-  "author": { "name": "rhkdguskim" },
+  "author": {
+    "name": "rhkdguskim"
+  },
   "repository": "https://github.com/rhkdguskim/my-ai-workflow",
   "license": "MIT"
 }

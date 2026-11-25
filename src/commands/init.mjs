@@ -1,7 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { installTools } from './tools.mjs';
 import { CONFIG_REL, LANGUAGES, configPath, defaultConfig, loadConfig, saveConfig, specsDir, testsDir, contractsDir, projectDir } from '../config.mjs';
 import { PKG_ROOT, walk, rel, readText, writeNew, render, UserError } from '../util.mjs';
+import { t, resolveLanguage } from '../i18n.mjs';
 
 const BEGIN = '# >>> my-ai-workflow (managed block; re-run `aiwf init` to refresh)';
 const END = '# <<< my-ai-workflow';
@@ -32,15 +34,16 @@ export function mergeOpenspecConfig(text, context, rules) {
 }
 
 export function init(root, flags) {
-  if (!root) throw new UserError('No openspec/ folder found. Run `openspec init` in the project root first.');
+  if (!root) throw new UserError(t('NO_OPENSPEC'));
   const created = [];
   const note = (file) => created.push(rel(root, file));
 
   let cfg;
   if (fs.existsSync(configPath(root))) cfg = loadConfig(root);
   else {
-    const language = typeof flags.lang === 'string' ? flags.lang : 'en';
-    if (!LANGUAGES.includes(language)) throw new UserError(`--lang must be one of ${LANGUAGES.join(', ')}`);
+    // Without --lang, documents use the user's display language (user setting, then system locale).
+    const language = typeof flags.lang === 'string' ? flags.lang : resolveLanguage().language;
+    if (!LANGUAGES.includes(language)) throw new UserError(t('LANG_INVALID', LANGUAGES.join(', ')));
     const phases = typeof flags.phases === 'string' ? flags.phases.split(',').map((p) => p.trim()).filter(Boolean) : [];
     cfg = defaultConfig(language, phases);
     saveConfig(root, cfg);
@@ -72,11 +75,16 @@ export function init(root, flags) {
     note(openspecConfig);
   }
 
-  console.log(created.length ? `Created or updated:\n${created.map((f) => `  ${f}`).join('\n')}` : 'Nothing to do; everything already exists.');
+  console.log(created.length ? `${t('INIT_CREATED')}\n${created.map((f) => `  ${f}`).join('\n')}` : t('INIT_NOTHING'));
   if (merged.contextNote || merged.rulesNote) {
-    console.log(`\nopenspec/config.yaml already has its own ${merged.contextNote ? 'context' : 'rules'} section in a form aiwf does not edit.`);
-    console.log(`Merge by hand from: ${rel(root, templateDir(cfg.language))}/config-${merged.contextNote ? 'context.txt' : 'rules.yaml'}`);
+    console.log(`\n${t('INIT_MANUAL', merged.contextNote ? 'context' : 'rules')}`);
+    console.log(t('INIT_MERGE_FROM', `${rel(root, templateDir(cfg.language))}/config-${merged.contextNote ? 'context.txt' : 'rules.yaml'}`));
   }
-  console.log(`\nNext: edit ${CONFIG_REL} or run \`aiwf add app <id> --prefix <PREFIX>\`.`);
+  // The contract check needs these; a failed install is reported and does not fail init.
+  if (!flags['no-tools'] && !process.env.AIWF_NO_TOOLS) {
+    console.log('');
+    installTools();
+  }
+  console.log(`\n${t('INIT_NEXT', CONFIG_REL)}`);
   return 0;
 }
